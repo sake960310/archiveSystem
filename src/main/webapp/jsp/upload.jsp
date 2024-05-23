@@ -6,7 +6,7 @@
 <%
     String path = request.getContextPath();
     String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
-	ExcelUtils excelUtils = new ExcelUtils();
+    ExcelUtils excelUtils = new ExcelUtils();
 	Map<String,String> map = excelUtils.getExportTypeMap();
     request.setAttribute("map", map);
 %>

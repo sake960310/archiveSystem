@@ -19,6 +19,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -30,6 +32,7 @@ public class ExcelUtils {
     //导入配置文件
     private static final String EXPORTCONF_FILE_PATH = "exportConf.properties";
     private static final Properties prop = new Properties();
+    Logger logger  =  Logger.getLogger(EcologyUtils.class );
     static{
         try {
             prop.load(new InputStreamReader(Objects.requireNonNull(ExcelUtils.class.getClassLoader().getResourceAsStream(EXPORTCONF_FILE_PATH)), StandardCharsets.UTF_8));
@@ -81,7 +84,7 @@ public class ExcelUtils {
             List<String> headersList = new ArrayList<>(fieldLabelNameMap.values());
             boolean isEqual = headersList.size() == headers.size() && new HashSet<>(headersList).containsAll(headers);
             if (!isEqual){
-                System.out.println("使用了错误导入模版！");
+                logger.info("使用了错误导入模版！");
                 excelData.put("failMode","1");
                 workbook.close();
                 fileContent.close();
@@ -434,7 +437,7 @@ public class ExcelUtils {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSS");
             while ((entry = zipInput.getNextEntry()) != null) {
                 String entryFileName = entry.getName();
-                String DH = entryFileName.contains(" ") ? entryFileName.substring(0,entryFileName.indexOf(" ")):entryFileName.substring(0,entryFileName.indexOf("."));//档号
+                String DH = entryFileName.contains("_") ? entryFileName.substring(0,entryFileName.indexOf("_")):entryFileName.substring(0,entryFileName.indexOf("."));//档号
                 if(relationMap.containsKey(DH)){
                     String newFileName = sdf.format(new Date()) + "_" + entryFileName;
                     File newFile = initNewFile(archiveFilePath.toString(),entryFileName);

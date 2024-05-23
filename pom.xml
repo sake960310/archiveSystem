@@ -7,7 +7,7 @@
     <groupId>com.sunriver</groupId>
     <artifactId>archiveSystem</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>demo2</name>
+    <name>archiveSystem</name>
     <packaging>war</packaging>
 
     <properties>
@@ -112,6 +112,7 @@
             <artifactId>logback-classic</artifactId>
             <version>1.4.14</version> <!-- 替换为你实际使用的Logback版本 -->
         </dependency>
+        <!-- log4j 依赖配置 -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>

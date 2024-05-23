@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
+import org.apache.commons.logging.impl.Log4JLogger;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -11,8 +12,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 
-import java.io.File;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +38,7 @@ public class EcologyUtils {
     static JDBCUtils jdbcUtils = new JDBCUtils();
     private static final String baseTableFields = excelUtils.getBaseTableConf();
     private static final String baseTable = excelUtils.getBaseTableName();
-
+    Logger logger  =  Logger.getLogger(EcologyUtils.class );
     public static void main(String[] args) {
         List<String> strings = List.of("1111", "2222", "3213", "123");
         System.out.println(JSON.toJSONString(strings));
@@ -50,10 +51,9 @@ public class EcologyUtils {
      */
     public JSONObject insertArchiveData(String exportType,Map<String, Object> excelDataMap){
         List<String> headers = (List<String>) excelDataMap.get("headers");
-        System.out.println("excelDataMap::标题数据："+headers.toString());
         List<List<Object>> datas = (List<List<Object>>) excelDataMap.get("data");
-        System.out.println("excelDataMap::数据一共行数"+datas.size());
-
+        logger.info("excelDataMap::标题数据："+headers);
+        logger.info("excelDataMap::数据一共行数"+datas.size());
         Map<String,Object> map = excelUtils.getExportConf(exportType);
         String tableName = map.get("tableName").toString();
         //导入数据字段keyList   将headersList 转换成数据库字段
@@ -119,19 +119,20 @@ public class EcologyUtils {
             datajson.put("operationinfo", getPostOperationInfo("1"));
             batchDataList.add(datajson);
             if (batchDataList.size() == batchSize || !dataIterator.hasNext()) {
+                long startdataTime = System.currentTimeMillis(); // 记录程序结束时间
                 try {
-                    long startdataTime = System.currentTimeMillis(); // 记录程序结束时间
                     resultStringBuilder.append(this.doAction(archiveApiName, batchDataList));
-                    long endTime = System.currentTimeMillis(); // 记录程序结束时间
-                    long executionBaseDataTime = (endTime - startdataTime)/1000; // 计算程序执行时间
-                    System.out.println("档案数据导入Action执行花费了 " + executionBaseDataTime + " 秒");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                long endTime = System.currentTimeMillis(); // 记录程序结束时间
+                long executionDataTime = (endTime - startdataTime)/1000; // 计算程序执行时间
                 batchDataList.clear();
                 //记录成功数据和失败数据
                 String resultString = resultStringBuilder.toString();
 //                System.out.println("insertDataAction()--resultString=="+resultString);
+                logger.info(startdataTime+" 档案数据导入resultString: " + resultString);
+                logger.info("档案数据导入Action执行花费了 " + executionDataTime + " 秒");
                 resultStringBuilder.setLength(0);
                 //获取档号与档案关联关系
                 resultRelationMap.putAll(getResultRelationMap(resultString));
@@ -145,25 +146,23 @@ public class EcologyUtils {
                     String baseResultString = insertBaseDataAction(exportType,tableName,dataArray);
                     long endBaseTime = System.currentTimeMillis(); // 记录程序结束时间
                     long executionBaseDataTime = (endBaseTime - startBaseTime)/1000; // 计算程序执行时间
-                    System.out.println("基表数据导入Action执行花费了 " + executionBaseDataTime + " 秒");
+                    logger.info(startdataTime+" 档案基表数据导入baseResultString: " + baseResultString);
+                    logger.info("基表数据导入Action执行花费了 " + executionBaseDataTime + " 秒");
                     JSONObject baseJsonObject = explainEcologResult(baseResultString);
                     // 获取成功数据和失败数据的数组
                     baseDataArray.addAll(baseJsonObject.getJSONArray("data"));
                     failBaseDataArray.addAll(baseJsonObject.getJSONArray("faildata"));
                     dataArray.clear();
                 }else{
-                    System.out.println("基表无可插入数据");
+                    logger.info("基表无可插入数据");
                 }
             }
         }
-
-        String resultString = resultStringBuilder.toString();
         //记录执行结果
         JSONObject resultJsonObject = new JSONObject();
-        resultJsonObject.put("resultString",resultString);
         long endTime = System.currentTimeMillis(); // 记录程序结束时间
         long executionDataTime = (endTime - startTime)/1000; // 计算程序执行时间
-        System.out.println("档案数据导入Action执行花费了 " + executionDataTime + " 秒");
+        logger.info("档案数据导入Action执行花费了 " + executionDataTime + " 秒");
         //生成失败附件
         String failFileName = "";
         if(!failDataArray.isEmpty()){
@@ -171,7 +170,9 @@ public class EcologyUtils {
         }
         long endFileTime = System.currentTimeMillis(); // 记录程序结束时间
         long executionFileTime = (endFileTime - endTime)/1000; // 计算程序执行时间
-        System.out.println("生成失败文件执行花费了 " + executionFileTime + " 秒");
+        logger.info("生成失败文件执行花费了 " + executionFileTime + " 秒");
+        logger.info("档案数据成功插入： " + resultRelationMap.size() + " 条；"+"档案基表数据成功插入： " + baseDataArray.size() + " 条；"+
+                "档案数据插入失败： " + failDataArray.size() + " 条；"+ " 条；"+"档案基表数据插入失败： " + failBaseDataArray.size() + " 条。");
         resultJsonObject.put("failDataName",failFileName);
         resultJsonObject.put("successData",resultRelationMap.size());
         resultJsonObject.put("successBaseData",baseDataArray.size());
